@@ -58,7 +58,7 @@ def main():
                 if documentos:
                     print("\n--- Lista de Documentos ---")
                     for doc in documentos:
-                        print(doc.to_json())
+                        print(doc)
                         print("-----------")
                 else:
                     print("No hay documentos en la colección.")
