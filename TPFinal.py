@@ -119,4 +119,4 @@ def main():
         
         elif opcion == "5":
             nombre_coleccion = input("Ingrese el nombre de la colección: ")
-            coleccion = db.get_collection
+            coleccion = db.get_collection 
