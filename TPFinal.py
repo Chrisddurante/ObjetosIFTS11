@@ -34,8 +34,8 @@ class Coleccion:
             with open(ruta_csv, mode='r', encoding='utf-8') as archivo_csv: 
                 lector_csv = csv.DictReader(archivo_csv) 
                 for fila in lector_csv: 
-                    doc_id = fila['id']  # Usando el 'id' que ya está en el archivo CSV
-                    contenido = {k: v for k, v in fila.items() if k != 'id'}  # Excluyendo 'id' de los contenidos
+                    doc_id = fila['id']  
+                    contenido = {k: v for k, v in fila.items() if k != 'id'}  
                     documento = Documento(doc_id, contenido) 
                     self.agregar_documento(documento) 
             print(f"Se importaron los documentos desde '{ruta_csv}'.") 
