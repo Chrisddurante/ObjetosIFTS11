@@ -9,6 +9,7 @@ class Documento:
     def modificar_contenido(self, nuevo_contenido):
         self.contenido = nuevo_contenido
 
+
 class Coleccion:
     def __init__(self, nombre):
         self.nombre = nombre
@@ -34,7 +35,7 @@ class Coleccion:
             with open(ruta_csv, mode='r', encoding='utf-8') as archivo_csv:
                 lector_csv = csv.DictReader(archivo_csv)
                 for i, fila in enumerate(lector_csv):
-                    doc_id = str(i)  #Este doc no tiene ID, con esto se asigna uno
+                    doc_id = str(i)  # Este doc no tiene ID, con esto se asigna uno
                     contenido = {k: v for k, v in fila.items()}
                     documento = Documento(doc_id, contenido)
                     self.agregar_documento(documento)
@@ -43,6 +44,8 @@ class Coleccion:
             print(f"Error: el archivo {ruta_csv} no existe.")
         except Exception as e:
             print(f"Error al importar CSV: {e}")
+            raise ValueError(f"No se pudo importar el archivo CSV '{ruta_csv}'.")
+
 
 class Database:
     def __init__(self, nombre_base):
@@ -52,12 +55,18 @@ class Database:
     def create_collection(self, nombre_coleccion):
         if nombre_coleccion not in self.colecciones:
             self.colecciones[nombre_coleccion] = Coleccion(nombre_coleccion)
+        else:
+            raise ValueError(f"La colección '{nombre_coleccion}' ya existe.")
 
     def get_collection(self, nombre_coleccion):
-        return self.colecciones.get(nombre_coleccion, None)
+        coleccion = self.colecciones.get(nombre_coleccion, None)
+        if not coleccion:
+            raise ValueError(f"La colección '{nombre_coleccion}' no existe.")
+        return coleccion
 
     def list_collections(self):
         return list(self.colecciones.keys())
+
 
 def mostrar_menu():
     print("\n--- Base de Datos Documental ---")
@@ -69,56 +78,51 @@ def mostrar_menu():
     print("6. Salir")
     return input("Seleccione una opción: ")
 
+
 def main():
     db = Database("MiBaseDeDatos")
     while True:
         opcion = mostrar_menu()
-        if opcion == "1":
-            nombre_coleccion = input("Ingrese el nombre de la colección: ")
-            db.create_collection(nombre_coleccion)
-            print(f"Colección '{nombre_coleccion}' creada.")
-        elif opcion == "2":
-            nombre_coleccion = input("Ingrese el nombre de la colección: ")
-            coleccion = db.get_collection(nombre_coleccion)
-            if coleccion:
+        try:
+            if opcion == "1":
+                nombre_coleccion = input("Ingrese el nombre de la colección: ")
+                db.create_collection(nombre_coleccion)
+                print(f"Colección '{nombre_coleccion}' creada.")
+            elif opcion == "2":
+                nombre_coleccion = input("Ingrese el nombre de la colección: ")
+                coleccion = db.get_collection(nombre_coleccion)
                 coleccion.importar_csv()
-            else:
-                print(f"Colección '{nombre_coleccion}' no encontrada.")
-        elif opcion == "3":
-            nombre_coleccion = input("Ingrese el nombre de la colección: ")
-            doc_id = input("Ingrese el ID del documento: ")
-            coleccion = db.get_collection(nombre_coleccion)
-            if coleccion:
+            elif opcion == "3":
+                nombre_coleccion = input("Ingrese el nombre de la colección: ")
+                doc_id = input("Ingrese el ID del documento: ")
+                coleccion = db.get_collection(nombre_coleccion)
                 documento = coleccion.buscar_documento(doc_id)
                 if documento:
                     print("Documento encontrado:")
                     print(documento.obtener_contenido())
                 else:
                     print("Documento no encontrado.")
-            else:
-                print(f"Colección '{nombre_coleccion}' no encontrada.")
-        elif opcion == "4":
-            nombre_coleccion = input("Ingrese el nombre de la colección: ")
-            doc_id = input("Ingrese el ID del documento a eliminar: ")
-            coleccion = db.get_collection(nombre_coleccion)
-            if coleccion:
+            elif opcion == "4":
+                nombre_coleccion = input("Ingrese el nombre de la colección: ")
+                doc_id = input("Ingrese el ID del documento a eliminar: ")
+                coleccion = db.get_collection(nombre_coleccion)
                 coleccion.eliminar_documento(doc_id)
                 print(f"Documento con ID '{doc_id}' eliminado de la colección '{nombre_coleccion}'.")
-            else:
-                print(f"Colección '{nombre_coleccion}' no encontrada.")
-        elif opcion == "5":
-            nombre_coleccion = input("Ingrese el nombre de la colección: ")
-            coleccion = db.get_collection(nombre_coleccion)
-            if coleccion:
+            elif opcion == "5":
+                nombre_coleccion = input("Ingrese el nombre de la colección: ")
+                coleccion = db.get_collection(nombre_coleccion)
                 documentos = coleccion.listar_documentos()
                 print(f"Documentos en la colección '{nombre_coleccion}':")
                 for documento in documentos:
                     print(documento.obtener_contenido())
+            elif opcion == "6":
+                print("Saliendo del programa...")
+                break
             else:
-                print(f"Colección '{nombre_coleccion}' no encontrada.")
-        elif opcion == "6":
-            print("Saliendo del programa...")
-            break
+                print("Opción no válida, por favor seleccione una opción correcta.")
+        except ValueError as e:
+            print(f"Error: {e}")
+
 
 if __name__ == "__main__":
     main()
