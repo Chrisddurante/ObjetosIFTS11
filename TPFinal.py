@@ -9,6 +9,9 @@ class Documento:
     def modificar_contenido(self, nuevo_contenido):
         self.contenido = nuevo_contenido
 
+    def __str__(self):
+        return f"ID: {self.id_documento}, Contenido: {self.contenido}"
+
 
 class Coleccion:
     def __init__(self, nombre):
@@ -21,6 +24,8 @@ class Coleccion:
     def eliminar_documento(self, id_documento):
         if id_documento in self.documentos:
             del self.documentos[id_documento]
+        else:
+            raise ValueError(f"Documento con ID {id_documento} no encontrado.")
 
     def buscar_documento(self, id_documento):
         return self.documentos.get(id_documento, None)
@@ -35,7 +40,7 @@ class Coleccion:
             with open(ruta_csv, mode='r', encoding='utf-8') as archivo_csv:
                 lector_csv = csv.DictReader(archivo_csv)
                 for i, fila in enumerate(lector_csv):
-                    doc_id = str(i)  # Este doc no tiene ID, con esto se asigna uno
+                    doc_id = i
                     contenido = {k: v for k, v in fila.items()}
                     documento = Documento(doc_id, contenido)
                     self.agregar_documento(documento)
@@ -44,7 +49,13 @@ class Coleccion:
             print(f"Error: el archivo {ruta_csv} no existe.")
         except Exception as e:
             print(f"Error al importar CSV: {e}")
-            raise ValueError(f"No se pudo importar el archivo CSV '{ruta_csv}'.")
+
+    def agregar_desde_lineas(self, lineas):
+        for i, linea in enumerate(lineas):
+            contenido = {f"campo_{j}": valor for j, valor in enumerate(linea.split(","))}
+            doc_id = i
+            documento = Documento(doc_id, contenido)
+            self.agregar_documento(documento)
 
 
 class Database:
@@ -59,13 +70,23 @@ class Database:
             raise ValueError(f"La colección '{nombre_coleccion}' ya existe.")
 
     def get_collection(self, nombre_coleccion):
-        coleccion = self.colecciones.get(nombre_coleccion, None)
-        if not coleccion:
-            raise ValueError(f"La colección '{nombre_coleccion}' no existe.")
-        return coleccion
+        return self.colecciones.get(nombre_coleccion, None)
 
     def list_collections(self):
         return list(self.colecciones.keys())
+
+
+def convert(linea):
+    
+    campos = linea.split(",")
+    contenido = {f"campo_{i}": campo for i, campo in enumerate(campos)}
+    return contenido
+
+
+def str2Doc(linea, id_documento):
+    
+    contenido = convert(linea)
+    return Documento(id_documento, contenido)
 
 
 def mostrar_menu():
@@ -75,52 +96,92 @@ def mostrar_menu():
     print("3. Consultar documento en colección")
     print("4. Eliminar documento de colección")
     print("5. Listar todos los documentos en colección")
-    print("6. Salir")
+    print("6. Agregar documentos desde líneas")
+    print("7. Salir")
     return input("Seleccione una opción: ")
 
 
 def main():
     db = Database("MiBaseDeDatos")
     while True:
-        opcion = mostrar_menu()
         try:
+            opcion = mostrar_menu()
+
             if opcion == "1":
                 nombre_coleccion = input("Ingrese el nombre de la colección: ")
-                db.create_collection(nombre_coleccion)
-                print(f"Colección '{nombre_coleccion}' creada.")
+                try:
+                    db.create_collection(nombre_coleccion)
+                    print(f"Colección '{nombre_coleccion}' creada.")
+                except ValueError as e:
+                    print(f"Error: {e}")
+
             elif opcion == "2":
                 nombre_coleccion = input("Ingrese el nombre de la colección: ")
                 coleccion = db.get_collection(nombre_coleccion)
-                coleccion.importar_csv()
+                if coleccion:
+                    coleccion.importar_csv()
+                else:
+                    print(f"Colección '{nombre_coleccion}' no encontrada.")
+
             elif opcion == "3":
                 nombre_coleccion = input("Ingrese el nombre de la colección: ")
-                doc_id = input("Ingrese el ID del documento: ")
-                coleccion = db.get_collection(nombre_coleccion)
-                documento = coleccion.buscar_documento(doc_id)
-                if documento:
-                    print("Documento encontrado:")
-                    print(documento.obtener_contenido())
-                else:
-                    print("Documento no encontrado.")
+                try:
+                    doc_id = int(input("Ingrese el ID del documento (número): "))
+                    coleccion = db.get_collection(nombre_coleccion)
+                    if coleccion:
+                        documento = coleccion.buscar_documento(doc_id)
+                        if documento:
+                            print("Documento encontrado:")
+                            print(documento.obtener_contenido())
+                        else:
+                            print("Documento no encontrado.")
+                    else:
+                        print(f"Colección '{nombre_coleccion}' no encontrada.")
+                except ValueError:
+                    print("Error: El ID del documento debe ser un número entero.")
+
             elif opcion == "4":
                 nombre_coleccion = input("Ingrese el nombre de la colección: ")
-                doc_id = input("Ingrese el ID del documento a eliminar: ")
-                coleccion = db.get_collection(nombre_coleccion)
-                coleccion.eliminar_documento(doc_id)
-                print(f"Documento con ID '{doc_id}' eliminado de la colección '{nombre_coleccion}'.")
+                try:
+                    doc_id = int(input("Ingrese el ID del documento a eliminar (número): "))
+                    coleccion = db.get_collection(nombre_coleccion)
+                    if coleccion:
+                        coleccion.eliminar_documento(doc_id)
+                        print(f"Documento con ID '{doc_id}' eliminado de la colección '{nombre_coleccion}'.")
+                    else:
+                        print(f"Colección '{nombre_coleccion}' no encontrada.")
+                except ValueError:
+                    print("Error: El ID del documento debe ser un número entero.")
+                except ValueError as e:
+                    print(f"Error: {e}")
+
             elif opcion == "5":
                 nombre_coleccion = input("Ingrese el nombre de la colección: ")
                 coleccion = db.get_collection(nombre_coleccion)
-                documentos = coleccion.listar_documentos()
-                print(f"Documentos en la colección '{nombre_coleccion}':")
-                for documento in documentos:
-                    print(documento.obtener_contenido())
+                if coleccion:
+                    documentos = coleccion.listar_documentos()
+                    print(f"Documentos en la colección '{nombre_coleccion}':")
+                    for documento in documentos:
+                        print(documento)
+                else:
+                    print(f"Colección '{nombre_coleccion}' no encontrada.")
+
             elif opcion == "6":
+                nombre_coleccion = input("Ingrese el nombre de la colección: ")
+                coleccion = db.get_collection(nombre_coleccion)
+                if coleccion:
+                    lineas = input("Ingrese las líneas separadas por ';': ").split(";")
+                    coleccion.agregar_desde_lineas(lineas)
+                    print("Documentos agregados desde líneas.")
+                else:
+                    print(f"Colección '{nombre_coleccion}' no encontrada.")
+
+            elif opcion == "7":
                 print("Saliendo del programa...")
                 break
-            else:
-                print("Opción no válida, por favor seleccione una opción correcta.")
         except ValueError as e:
+            print(f"Error inesperado: {e}")
+        except Exception as e:
             print(f"Error: {e}")
 
 
